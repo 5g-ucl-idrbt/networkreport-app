@@ -25,6 +25,10 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
+    private static final String PREFS_NAME = "network_log";
+    private static final String LOGS_KEY = "logs";
+    private static final String TOTAL_CONNECTED_TIME_KEY = "total_connected_time";
+
     private TextView networkStatusTextView;
     private TextView networkTypeTextView;
     private CalendarView calendarView;
@@ -50,8 +54,9 @@ public class MainActivity extends AppCompatActivity {
         connectedTimeTextView = findViewById(R.id.connectedTimeTextView);
         logsTextView = findViewById(R.id.logsTextView);
 
-        prefs = getSharedPreferences("network_log", Context.MODE_PRIVATE);
-        clearPreviousLogs();
+        prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        retrieveLogs();
+        retrieveTotalConnectedTime();
 
         registerNetworkReceiver();
 
@@ -75,12 +80,34 @@ public class MainActivity extends AppCompatActivity {
         }, 1000); // Start after 1 second
     }
 
-    private void clearPreviousLogs() {
-        // Clear previous logs when app starts
+    private void retrieveLogs() {
+        String savedLogs = prefs.getString(LOGS_KEY, "");
+        if (!savedLogs.isEmpty()) {
+            String[] logEntries = savedLogs.split("\n");
+            for (String logEntry : logEntries) {
+                logs.add(logEntry);
+            }
+        }
+    }
+
+    private void saveLogs() {
         SharedPreferences.Editor editor = prefs.edit();
-        editor.remove("logs");
+        StringBuilder logBuilder = new StringBuilder();
+        for (String log : logs) {
+            logBuilder.append(log).append("\n");
+        }
+        editor.putString(LOGS_KEY, logBuilder.toString());
         editor.apply();
-        logs.clear();
+    }
+
+    private void retrieveTotalConnectedTime() {
+        totalConnectedTimeMillis = prefs.getLong(TOTAL_CONNECTED_TIME_KEY, 0);
+    }
+
+    private void saveTotalConnectedTime() {
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putLong(TOTAL_CONNECTED_TIME_KEY, totalConnectedTimeMillis);
+        editor.apply();
     }
 
     private void registerNetworkReceiver() {
@@ -116,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
                 long connectedDurationMillis = new Date().getTime() - connectedStartTime.getTime();
                 totalConnectedTimeMillis += connectedDurationMillis;
                 connectedStartTime = null;
+                saveTotalConnectedTime(); // Save the updated total connected time
             }
             currentNetworkType = ""; // Clear the network type when disconnected
         }
@@ -132,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
         String logEntry = (currentlyConnected ? "Connected: " : "Disconnected: ") + getCurrentTime();
         logs.add(logEntry);
         logNetworkStatus(logEntry);
+        saveLogs(); // Save the logs
     }
 
     private String getCurrentTime() {
@@ -140,11 +169,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void logNetworkStatus(String logEntry) {
         Log.d(TAG, logEntry);
-
-        SharedPreferences.Editor editor = prefs.edit();
-        StringBuilder existingLogs = new StringBuilder(prefs.getString("logs", ""));
-        editor.putString("logs", existingLogs.append(logEntry).append("\n").toString());
-        editor.apply();
     }
 
     @Override
