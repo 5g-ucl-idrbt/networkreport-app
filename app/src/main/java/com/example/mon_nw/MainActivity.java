@@ -5,16 +5,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.os.Handler;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.widget.CalendarView;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -136,6 +141,8 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 currentNetworkType = "Unknown";
             }
+
+            networkStatusTextView.setTextColor(ContextCompat.getColor(this, R.color.green));
         } else if (!currentlyConnected && isConnected) {
             // Transition from connected to disconnected
             isConnected = false;
@@ -146,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 saveTotalConnectedTime(); // Save the updated total connected time
             }
             currentNetworkType = ""; // Clear the network type when disconnected
+            networkStatusTextView.setTextColor(ContextCompat.getColor(this, R.color.red));
         }
 
         // Update network status text view
@@ -185,7 +193,16 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < logs.size(); i++) {
             String logEntry = logs.get(i);
             if (logEntry.startsWith("Connected: " + selectedDateString) || logEntry.startsWith("Disconnected: " + selectedDateString)) {
-                filteredLogs.append(logEntry).append(" (");
+                SpannableString spannableLogEntry = new SpannableString(logEntry);
+
+                // Color connected logs green and disconnected logs red
+                if (logEntry.startsWith("Connected: ")) {
+                    spannableLogEntry.setSpan(new ForegroundColorSpan(Color.GREEN), 0, logEntry.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (logEntry.startsWith("Disconnected: ")) {
+                    spannableLogEntry.setSpan(new ForegroundColorSpan(Color.RED), 0, logEntry.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+
+                filteredLogs.append(spannableLogEntry).append(" (");
 
                 // Calculate duration to next log
                 if (i < logs.size() - 1) {
@@ -211,8 +228,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         // Update report text view
-        filteredLogs.insert(0, "Logs for " + selectedDateString + ":\n\n");
-        logsTextView.setText(filteredLogs.toString());
+        logsTextView.setText(filteredLogs);
 
         // Update total connected time
         String totalConnectedTime = "Total Connected Time: " + getFormattedDuration(totalConnectedTimeMillis);
