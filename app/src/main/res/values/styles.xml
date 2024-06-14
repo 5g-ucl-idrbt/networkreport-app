@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="CalendarDateTextAppearance">
+        <item name="android:textColor">#000000</item> <!-- Example: Black text color -->
+        <item name="android:textSize">14sp</item>   <!-- Example: Text size 14sp -->
+        <!-- Add more attributes as per your design requirements -->
+    </style>
+
+</resources>
